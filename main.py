@@ -1,40 +1,63 @@
+from typing import Dict, Union
+
 from fastapi import FastAPI
 from elasticsearch import Elasticsearch
 from bs4 import BeautifulSoup
 import json
-
+from components.management import Management
 
 app = FastAPI()
-es = Elasticsearch([{"host": "localhost", "port": 9200, "scheme": "index"}])
+elastic = Management()
+
 
 @app.get("/")
 async def root():
-    file = open('sites.json', 'r')
-    json_data = json.load(file)
-    # for data in json_data:
-    #     es.index(index="sites", body=data)
-    return {"message": es.info()}
+    return elastic.root()
 
 
-@app.get("/{index}")
-async def say_hello(index: str):
-    hits = []
-    for hit in es.search(index=index, body={"query": {"match_all": {}}}).get('hits').get('hits'):
-        html = hit.get('_source').get('content')
-        text = BeautifulSoup(html, features="html.parser").get_text().replace("\n", " ").strip()
-        headings = BeautifulSoup(html, features="html.parser").find_all([f'h{i}' for i in range(1, 4)])
-        headings_arr = []
-        for head in headings:
-            if len(head) > 1:
-                for h in head:
-                    headings_arr.append(h.get_text().replace("\n", " ").strip()) if len(h.get_text().replace("\n", " ").strip()) > 1 else None
-            else:
-                headings_arr.append(head.get_text().replace("\n", " ").strip()) if len(head.get_text().replace("\n", " ").strip()) > 1 else None
+@app.get("/suggest/{value}")
+async def suggest(value: str):
+    return elastic.suggest(value)
 
-        hits.append({
-            "headings": headings_arr,
-            "text": text
-        })
-    # for hit in hits:
-    #     print(es.index(index="texts", body=hit))
-    return {"message": json.dumps(hits)}
+
+@app.get("/import")
+async def import_initial():
+    return elastic.initial_import()
+
+
+@app.get("/import/{index}")
+async def importing(index: str):
+    return elastic.index_import(index)
+
+
+@app.get("/create/{index}")
+async def creating(index: str):
+    mapping = {
+        "settings": {
+            "number_of_shards": 4
+        },
+        "mappings": {
+            'properties': {
+                'autocomplete': {
+                    'type': 'keyword'
+                },
+                'headings': {
+                    'type': 'text'
+                },
+                'text': {
+                    'type': 'text'
+                }
+            }
+        }
+    }
+    return elastic.create_index(index, mapping)
+
+
+@app.get("/delete/{index}")
+async def deleting(index: str):
+    return elastic.delete_index(index)
+
+
+@app.get("/show/{index}")
+async def show(index: str):
+    return elastic.show_index(index)
