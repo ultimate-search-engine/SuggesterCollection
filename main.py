@@ -1,13 +1,10 @@
-from typing import Dict, Union
-
+from components.modelating import Modelator
 from fastapi import FastAPI
-from elasticsearch import Elasticsearch
-from bs4 import BeautifulSoup
-import json
 from components.management import Management
 
 app = FastAPI()
 elastic = Management()
+modelator = Modelator()
 
 
 @app.get("/")
@@ -27,29 +24,12 @@ async def import_initial():
 
 @app.get("/import/{index}")
 async def importing(index: str):
-    return elastic.index_import(index)
+    return elastic.index_default_import(index)
 
 
 @app.get("/create/{index}")
 async def creating(index: str):
-    mapping = {
-        "settings": {
-            "number_of_shards": 4
-        },
-        "mappings": {
-            'properties': {
-                'autocomplete': {
-                    'type': 'keyword'
-                },
-                'headings': {
-                    'type': 'text'
-                },
-                'text': {
-                    'type': 'text'
-                }
-            }
-        }
-    }
+    mapping = {}
     return elastic.create_index(index, mapping)
 
 
@@ -61,3 +41,12 @@ async def deleting(index: str):
 @app.get("/show/{index}")
 async def show(index: str):
     return elastic.show_index(index)
+
+
+@app.get("/run_algorithm")
+async def show_data():
+    return elastic.get_sentence('social impact')
+    # return modelator.initial_setup()
+    # te = TextEditor()
+    # te.show(data['headings'], data['text'])
+    # return data
