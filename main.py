@@ -45,8 +45,12 @@ async def show(index: str):
 
 @app.get("/run_algorithm")
 async def show_data():
-    return elastic.get_sentence('social impact')
-    # return modelator.initial_setup()
-    # te = TextEditor()
-    # te.show(data['headings'], data['text'])
-    # return data
+    return modelator.initial_setup()
+
+
+# @app.get("/run_algorithm2")
+# async def show_data():
+#     # return elastic.get_sentence('a github')
+#     # te = TextEditor()
+#     # te.show(data['headings'], data['text'])
+#     # return data
