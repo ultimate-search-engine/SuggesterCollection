@@ -14,14 +14,14 @@ MAPPING_TEXT = {
                 "analyzer": "english",
 
                 "fielddata": True,
-                "term_vector": "yes"
+                "term_vector": "with_positions_offsets"
             },
             'text': {
                 'type': 'text',
                 "analyzer": "english",
 
                 "fielddata": True,
-                "term_vector": "yes"
+                "term_vector": "with_positions_offsets"
             }
         }
     }}
@@ -53,16 +53,15 @@ class Modelator:
 
     def initial_setup(self):
         list_of_data = self.manager.get_index_data(self.index)
-        words = []
         self.manager.delete_index('text_for_calc')
         self.manager.create_index('text_for_calc', MAPPING_TEXT)
         self.manager.delete_index('words_pairs')
         self.manager.create_index('words_pairs', MAPPING_PAIRS)
         for data_list in list_of_data:
-            words.extend(self.insert_searchable_texts(data_list))
-        words = list(dict.fromkeys(words))
-        time.sleep(5)
-        return self.create_model(words)
+            self.insert_searchable_texts(data_list)
+        # words = list(dict.fromkeys(words))
+        time.sleep(10)
+        return self.create_model()
 
     def insert_searchable_texts(self, data_list):
         data = data_list.get('_source')
@@ -74,7 +73,8 @@ class Modelator:
         self.manager.import_record_to_index('text_for_calc', new_index_data)
         return structured[2]
 
-    def sum_all_words(self, docs: list):
+    @staticmethod
+    def sum_all_words(docs: list):
         list_of_words = []
         for doc in docs:
             term_vectors = doc['term_vectors']
@@ -91,23 +91,29 @@ class Modelator:
         docs = self.manager.count_occurrences(INDEX)['docs']
         return self.sum_all_words(docs)
 
-    def create_model(self, words: list):
+    def create_model(self):
         occurrences = self.calculate_words()
-        return occurrences
-        #     occurrences.append({'word': word, 'count': self.manager.count_occurrences(INDEX, word)})
-        # occurrences.append({'word': '<s>', 'count': self.manager.count_occurrences(INDEX, '<s>')})
-        # print(occurrences)
-        # for word in words:
-        #     for occurrence in occurrences:
-        #         if occurrence['count'] and (occurrence['word'].strip != word.strip):
-        #             data_to_import = {
-        #                 'before': word,
-        #                 'word': occurrence['word'],
-        #                 'probability': round(
-        #                     self.manager.count_occurrences(
-        #                         INDEX, f"{occurrence['word']} {word}") / occurrence['count'], 4)
-        #             }
-        #             self.manager.import_record_to_index(INDEX_IMPORT, data_to_import)
-        #             for_check.append(data_to_import)
-        #             print(data_to_import)
-        # print(for_check)
+        for_check = []
+        for field in occurrences:
+            before = field['word']
+            finded = 0
+            for occurrence in occurrences:
+                word = occurrence['word']
+                probability = round(
+                        self.manager.get_phrase_count(
+                            INDEX, f"{before} {word}") / field['count'], 4)
+                if probability > 0:
+                    finded += 1
+                    data_to_import = {
+                        'before': before,
+                        'word': word,
+                        'probability': round(
+                            self.manager.get_phrase_count(
+                                INDEX, f"{before} {word}") / field['count'], 4)
+                    }
+                    self.manager.import_record_to_index(INDEX_IMPORT, data_to_import)
+                    for_check.append(data_to_import)
+                    print(data_to_import)
+                    if finded == int(field['count']):
+                        break
+        return for_check

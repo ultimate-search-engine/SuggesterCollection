@@ -14,13 +14,11 @@ SENTENCE_QUERY = {
     },
     "highlight": {
         "fields": {
-            "text": {
-                "fragment_size": 100
-            },
-            'headings': {
-                "fragment_size": 100
-            }
-        }
+            "*": {}
+        },
+        "type": "fvh",
+        "fragment_size": 20,
+        "number_of_fragments": 100
     }
 }
 
@@ -76,6 +74,7 @@ class Management:
 
     def count_occurrences(self, index: str):
         documents = self.show_index(index)['message']['hits']['hits']
+        print(documents)
         return self.es.mtermvectors(index=index, fields=['headings', 'text'],
                                     term_statistics=True, ids=[document['_id'] for document in documents])
 
@@ -98,10 +97,21 @@ class Management:
     def show_index(self, index: str):
         return {'message': self.es.search(index=index)}
 
-    def get_sentence(self, sentence: str):
+    def get_phrase_count(self, index: str, sentence: str):
         query = SENTENCE_QUERY
         query['query']['multi_match']['query'] = sentence
-        return self.es.search(index='text_for_calc', body=query)['hits']['hits']
+        resp = self.es.search(index=index, body=query)['hits']['hits']
+        words = [w for w in sentence.split(' ')]
+        arr = []
+        for doc in resp:
+            if 'highlight' in doc.keys():
+                if 'headings' in doc['highlight'].keys():
+                    for h in doc['highlight']['headings']:
+                        arr.append(h) if f"<em>{words[0]}</em> <em>{words[1]}</em>" in h else None
+                if 'text' in doc['highlight'].keys():
+                    for t in doc['highlight']['text']:
+                        arr.append(t) if f"<em>{words[0]}</em> <em>{words[1]}</em>" in t else None
+        return len(arr)
 
     def suggest(self, value: str):
         query = {
