@@ -17,6 +17,12 @@ async def suggest(value: str):
     return elastic.suggest(value)
 
 
+@app.get("/run_full_setup")
+async def full_setup():
+    elastic.initial_import()
+    modelator.initial_setup()
+
+
 @app.get("/import")
 async def import_initial():
     return elastic.initial_import()
@@ -24,7 +30,7 @@ async def import_initial():
 
 @app.get("/import/{index}")
 async def importing(index: str):
-    return elastic.index_default_import(index)
+    return elastic.import_texts_from_html(index)
 
 
 @app.get("/create/{index}")
@@ -48,9 +54,6 @@ async def show_data():
     return modelator.initial_setup()
 
 
-# @app.get("/run_algorithm2")
-# async def show_data():
-#     # return elastic.get_sentence('a github')
-#     # te = TextEditor()
-#     # te.show(data['headings'], data['text'])
-#     # return data
+@app.get("/clean")
+async def clean_elastic():
+    return elastic.clean()
