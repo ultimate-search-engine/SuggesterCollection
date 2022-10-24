@@ -1,51 +1,21 @@
 from components.management import Management
+from features.counter import Counter
+from features.helper import Helper
+from features.text_editor import TextEditor
+import features.constatnts as constants
 import time
 
 INDEX = 'text_for_calc'
 INDEX_IMPORT = 'words_pairs'
-MAPPING_TEXT = {
-    "settings": {
-        "number_of_shards": 4
-    },
-    "mappings": {
-        'properties': {
-            'headings': {
-                'type': 'text',
-                "analyzer": "english",
-
-                "fielddata": True,
-                "term_vector": "with_positions_offsets"
-            },
-            'text': {
-                'type': 'text',
-                "analyzer": "english",
-
-                "fielddata": True,
-                "term_vector": "with_positions_offsets"
-            }
-        }
-    }}
-MAPPING_PAIRS = {
-    "settings": {
-        "number_of_shards": 4
-    },
-    "mappings": {
-        'properties': {
-            'word': {
-                'type': 'keyword',
-            },
-            'before': {
-                'type': 'keyword'
-            },
-            'probability': {
-                'type': 'float'
-            }
-        }
-    }}
+MAPPING_TEXT = constants.text_mapping
+MAPPING_PAIRS = constants.words_pairs_mapping
 
 
 class Modelator:
     manager = Management()
+    counter = Counter()
+    helper = Helper()
+    text_editor = TextEditor()
     index = ''
 
     def __init__(self, index: str = 'texts'):
@@ -53,67 +23,40 @@ class Modelator:
 
     def initial_setup(self):
         list_of_data = self.manager.get_index_data(self.index)
-        self.manager.delete_index('text_for_calc')
-        self.manager.create_index('text_for_calc', MAPPING_TEXT)
-        self.manager.delete_index('words_pairs')
-        self.manager.create_index('words_pairs', MAPPING_PAIRS)
+        self.helper.es_clean(Management(), INDEX, MAPPING_TEXT, INDEX_IMPORT, MAPPING_PAIRS)
         for data_list in list_of_data:
             self.insert_searchable_texts(data_list)
-        # words = list(dict.fromkeys(words))
-        time.sleep(10)
+        while len(self.manager.show_index(INDEX)['message']['hits']['hits']) < len(list_of_data):
+            print(f'Wait! Should be {len(list_of_data)} documents.')
+            time.sleep(2)
         return self.create_model()
 
-    def insert_searchable_texts(self, data_list):
+    def insert_searchable_texts(self, data_list: dict):
         data = data_list.get('_source')
-        structured = self.manager.text_editor.format_and_words(data['headings'], data['text'])
-        new_index_data = {
-            'headings': structured[0],
-            'text': structured[1]
-        }
-        self.manager.import_record_to_index('text_for_calc', new_index_data)
+        structured = self.text_editor.format_and_words(data['headings'], data['text'])
+        new_index_data = self.helper.clear_texts_model(structured[0], structured[1])
+        self.manager.import_record_to_index(INDEX, new_index_data)
         return structured[2]
 
-    @staticmethod
-    def sum_all_words(docs: list):
-        list_of_words = []
-        for doc in docs:
-            term_vectors = doc['term_vectors']
-            all_words = {**term_vectors['text']['terms'], **term_vectors['headings']['terms']}
-            for key, value in all_words.items():
-                existed = [x for x in list_of_words if x['word'] == key]
-                insert_val = {'word': key, 'count': value['term_freq'] + (existed[0]['count'] if len(existed) else 0)}
-                if len(existed):
-                    list_of_words.remove(existed[0])
-                list_of_words.append(insert_val)
-        return list_of_words
-
     def calculate_words(self):
-        docs = self.manager.count_occurrences(INDEX)['docs']
-        return self.sum_all_words(docs)
+        docs = self.manager.get_words_occurrences(INDEX)['docs']
+        return self.counter.count_all_words(docs)
 
     def create_model(self):
         occurrences = self.calculate_words()
-        for_check = []
         for field in occurrences:
             before = field['word']
-            finded = 0
+            found = 0
             for occurrence in occurrences:
                 word = occurrence['word']
-                probability = round(
-                        self.manager.get_phrase_count(
-                            INDEX, f"{before} {word}") / field['count'], 4)
+                probability = self.helper.get_probability(self.manager.get_phrase_count(
+                    INDEX, f"{before} {word}"), field['count'])
                 if probability > 0:
-                    finded += 1
-                    data_to_import = {
-                        'before': before,
-                        'word': word,
-                        'probability': round(
-                            self.manager.get_phrase_count(
-                                INDEX, f"{before} {word}") / field['count'], 4)
-                    }
+                    found += 1
+                    data_to_import = self.helper.words_pairs_model(before, word, probability)
                     self.manager.import_record_to_index(INDEX_IMPORT, data_to_import)
-                    for_check.append(data_to_import)
-                    print(data_to_import)
-                    if finded == int(field['count']):
+                    print(data_to_import, {'phrase': self.manager.get_phrase_count(
+                        INDEX, f"{before} {word}"), 'word': field['count']})
+                    if found == int(field['count']):
                         break
-        return for_check
+        return self.manager.show_index(INDEX_IMPORT)

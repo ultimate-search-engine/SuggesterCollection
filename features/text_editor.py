@@ -1,10 +1,13 @@
 from bs4 import BeautifulSoup
+from features.helper import Helper
 import re
 
 
 class TextEditor:
+    helper = None
+
     def __init__(self):
-        pass
+        self.helper = Helper()
 
     def html_to_text(self, htmls):
         hits = []
@@ -26,11 +29,7 @@ class TextEditor:
                 autocomplete.extend(title.split())
             autocomplete.extend(text.split())
             print(len(autocomplete))
-            hits.append({
-                "headings": headings_arr,
-                "text": text,
-                'autocomplete': autocomplete
-            })
+            hits.append(self.helper.hits_model(headings_arr, text, autocomplete))
         return hits
 
     def format_and_words(self, headings: list, content: str):
@@ -57,3 +56,15 @@ class TextEditor:
 
     def assign_marks(self, sentence: str):
         return f' sssss {sentence.strip()} eeeee '
+
+    def search_for_phrase(self, before: str, after: str, resp):
+        arr = []
+        for doc in resp:
+            if 'highlight' in doc.keys():
+                if 'headings' in doc['highlight'].keys():
+                    for h in doc['highlight']['headings']:
+                        arr.append(h) if f"<em>{before}</em> <em>{after}</em>" in h else None
+                if 'text' in doc['highlight'].keys():
+                    for t in doc['highlight']['text']:
+                        arr.append(t) if f"<em>{before}</em> <em>{after}</em>" in t else None
+        return len(arr)

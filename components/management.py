@@ -1,26 +1,14 @@
 from elasticsearch import Elasticsearch
-from components.text_editor import TextEditor
+from features.text_editor import TextEditor
+import features.constatnts as constants
 import json
 
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 9200
 DEFAULT_SCHEME = 'index'
-SENTENCE_QUERY = {
-    'query': {
-        "multi_match": {
-            'query': '',
-            'fields': ['headings', 'text']
-        }
-    },
-    "highlight": {
-        "fields": {
-            "*": {}
-        },
-        "type": "fvh",
-        "fragment_size": 20,
-        "number_of_fragments": 100
-    }
-}
+SENTENCE_QUERY = constants.sentence_query
+SEARCH_QUERY = constants.search_query
+SUGGEST_QUERY = constants.suggest_query
 
 
 class Management:
@@ -47,6 +35,7 @@ class Management:
         json_data = json.load(file)
         for data in json_data:
             self.es.index(index="sites", body=data)
+        self.import_texts_from_html('sites')
         return {'message': self.es.search(index='sites')}
 
     def import_array_to_index(self, index: str, requested: list):
@@ -61,28 +50,20 @@ class Management:
         return {'message': self.es.search(index=index)}
 
     def search_text(self, text: str, index: str):
-        search_query = {"query": {
-            "bool": {
-                "must": {
-                    "query_string": {
-                        "query": "{}".format(text)
-                    }
-                }
-            }
-        }}
+        search_query = SEARCH_QUERY
+        search_query['query']['bool']['must']['query_string']['query'] = text
         return self.es.search(index=index, query=search_query)
 
-    def count_occurrences(self, index: str):
+    def get_words_occurrences(self, index: str):
         documents = self.show_index(index)['message']['hits']['hits']
-        print(documents)
+        print(f'documents: {len(documents)}')
         return self.es.mtermvectors(index=index, fields=['headings', 'text'],
                                     term_statistics=True, ids=[document['_id'] for document in documents])
 
-    def index_default_import(self, index: str):
+    def import_texts_from_html(self, index: str):
         hits = self.text_editor.html_to_text(self.get_index_data(index))
         for hit in hits:
             print(self.es.index(index="texts", body=hit))
-
         return {"message": json.dumps(hits)}
 
     def delete_index(self, index: str):
@@ -102,37 +83,17 @@ class Management:
         query['query']['multi_match']['query'] = sentence
         resp = self.es.search(index=index, body=query)['hits']['hits']
         words = [w for w in sentence.split(' ')]
-        arr = []
-        for doc in resp:
-            if 'highlight' in doc.keys():
-                if 'headings' in doc['highlight'].keys():
-                    for h in doc['highlight']['headings']:
-                        arr.append(h) if f"<em>{words[0]}</em> <em>{words[1]}</em>" in h else None
-                if 'text' in doc['highlight'].keys():
-                    for t in doc['highlight']['text']:
-                        arr.append(t) if f"<em>{words[0]}</em> <em>{words[1]}</em>" in t else None
-        return len(arr)
+        return self.text_editor.search_for_phrase(words[0], words[1], resp)
 
     def suggest(self, value: str):
-        query = {
-            "size": 0,
-            "aggregations": {
-                "autocomplete": {
-                    "filter": {
-                        "prefix": {
-                            "autocomplete": "{}".format(value)
-                        }
-                    },
-                    "aggregations": {
-                        "autocomplete": {
-                            "terms": {
-                                "field": "autocomplete",
-                                "include": "{}.*".format(value)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        query = SUGGEST_QUERY
+        query['aggregations']['autocomplete']['filter']['prefix']['autocomplete'] = value
+        query['aggregations']['autocomplete']['aggregations']['autocomplete']['terms']['include'] = (value + '.*')
         buckets = self.es.search(index='texts', body=query)['aggregations']['autocomplete']['autocomplete']['buckets']
         return {'suggestions': [suggest['key'] for suggest in buckets[:8]]}
+
+    def clean(self):
+        indices = self.root()['indices']
+        for index in indices:
+            self.delete_index(index)
+        return {'message': 'Všechny indexy byly odstraněny.'}
