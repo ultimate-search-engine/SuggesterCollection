@@ -1,5 +1,8 @@
+import time
+
 from elasticsearch import Elasticsearch
 from features.text_editor import TextEditor
+from features.helper import Helper
 import features.constatnts as constants
 import json
 
@@ -17,6 +20,7 @@ class Management:
     scheme = ""
     es = None
     text_editor = TextEditor()
+    helper = Helper()
 
     def __init__(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, scheme: str = DEFAULT_SCHEME):
         self.host = host
@@ -35,9 +39,13 @@ class Management:
         json_data = json.load(file)
         for data in json_data:
             self.es.index(index="sites", body=data)
-        self.import_texts_from_html('sites')
-        return {'message': self.es.search(index='sites')}
-
+        while True:
+            length = int(self.show_index('sites').get('hits').get('total').get('value'))
+            if length == len(json_data):
+                break
+            print(f'Loaded {length} records of {len(json_data)}')
+            time.sleep(10)
+        return len(self.import_texts_from_html('sites'))
     def import_array_to_index(self, index: str, requested: list):
         for data in requested:
             json_data = json.dumps(data)
@@ -55,28 +63,42 @@ class Management:
         return self.es.search(index=index, query=search_query)
 
     def get_words_occurrences(self, index: str):
-        documents = self.show_index(index)['message']['hits']['hits']
-        print(f'documents: {len(documents)}')
-        return self.es.mtermvectors(index=index, fields=['headings', 'text'],
-                                    term_statistics=True, ids=[document['_id'] for document in documents])
+        ids = [document['_id'] for document in self.helper.get_all_documents(es=self, index=index)]
+        print(f'Documents: {len(ids)}')
+        position_now = 0
+        words_stats = []
+        print('Getting vectors...')
+        while position_now < len(ids):
+            words_stats.extend(self.es.mtermvectors(index=index, fields=['headings', 'text'],
+                                                    term_statistics=True,
+                                                    ids=ids[position_now:position_now + (
+                                                        100 if len(ids) - position_now > 100 else
+                                                        len(ids) - position_now)])['docs'])
+            position_now += (100 if len(ids) - position_now > 100 else
+                             len(ids) - position_now)
+            print(f'Got {position_now} vectors statistic')
+        return words_stats
 
     def import_texts_from_html(self, index: str):
-        hits = self.text_editor.html_to_text(self.get_index_data(index))
+        # hits = self.text_editor.html_to_text(
+        #     self.get_index_data(index, self.show_index('sites')['hits']['total']['value']))
+        hits = self.text_editor.html_to_text(self.helper.get_all_documents(es=self, index='sites'))
         for hit in hits:
             print(self.es.index(index="texts", body=hit))
-        return {"message": json.dumps(hits)}
+        return hits
 
     def delete_index(self, index: str):
-        return {"message": self.es.indices.delete(index=index)}
+        return {"message": self.es.options(ignore_status=[400, 404]).indices.delete(index=index)}
 
     def create_index(self, index: str, mappings: object):
         return {"message": self.es.indices.create(index=index, body=mappings, pretty=True)}
 
-    def get_index_data(self, index: str):
-        return self.es.search(index=index, body={"query": {"match_all": {}}}).get('hits').get('hits')
+    def get_index_data(self, index: str, size: int = 100, from_doc: int = 0):
+        return self.es.search(index=index, size=size, from_=from_doc, body={"query": {"match_all": {}}}).get(
+            'hits').get('hits')
 
     def show_index(self, index: str):
-        return {'message': self.es.search(index=index)}
+        return self.es.search(index=index)
 
     def get_phrase_count(self, index: str, sentence: str):
         query = SENTENCE_QUERY

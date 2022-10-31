@@ -1,3 +1,7 @@
+from time import sleep
+
+SIZE = 100
+
 class Helper:
     def get_probability(self, occurrences: int, word_count: int):
         return round(occurrences / word_count, 4)
@@ -28,3 +32,11 @@ class Helper:
             "text": text,
             'autocomplete': autocomplete
         }
+
+    def get_all_documents(self, es, index):
+        size = es.show_index(index)['hits']['total']['value']
+        documents = es.get_index_data(index, SIZE, 0)
+        while len(documents) < size:
+            sleep(5)
+            documents.extend(es.get_index_data(index, SIZE, len(documents)))
+        return documents
