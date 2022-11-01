@@ -69,3 +69,5 @@ class Modelator:
                         break
             print(f'Word {before} is inserted to database')
         return self.manager.show_index(INDEX_IMPORT)
+
+
