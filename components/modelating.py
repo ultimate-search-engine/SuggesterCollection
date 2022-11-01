@@ -67,7 +67,7 @@ class Modelator:
                         INDEX, f"{before} {word}"), 'word': field['count']})
                     if found == int(field['count']):
                         break
-            print(f'Word {before} is inserted to database')
+            print(f'Word {before} of {len(occurrences)} is inserted to database')
         return self.manager.show_index(INDEX_IMPORT)
 
 
