@@ -1,6 +1,7 @@
 from components.modelating import Modelator
 from fastapi import FastAPI
 from components.management import Management
+from datetime import datetime
 
 app = FastAPI()
 elastic = Management()
@@ -19,9 +20,15 @@ async def suggest(value: str):
 
 @app.get("/run_full_setup")
 async def full_setup():
-    elastic.initial_import()
+    print('Full setup started!')
+    elastic.clean()
+    hits = elastic.initial_import()
+    print(f'Dump imported - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
     modelator.initial_setup()
-
+    print(f'Model created - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
+    elastic.delete_index('texts')
+    elastic.delete_index('sites')
+    return elastic.show_index('words_pairs')
 
 @app.get("/import")
 async def import_initial():
