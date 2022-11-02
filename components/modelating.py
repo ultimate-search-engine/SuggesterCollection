@@ -55,8 +55,10 @@ class Modelator:
         for field in occurrences:
             before = field['word']
             found = 0
-            for occurrence in occurrences:
-                word = occurrence['word']
+            dependant_words = self.manager.get_phrase_count(INDEX, before)
+            for word in dependant_words:
+                # for occurrence in occurrences:
+                #     word = occurrence['word']
                 probability = self.helper.get_probability(self.manager.get_phrase_count(
                     INDEX, f"{before} {word}"), field['count'])
                 if probability > 0:
@@ -69,5 +71,3 @@ class Modelator:
                         break
             print(f'Word {before} of {len(occurrences)} is inserted to database')
         return self.manager.show_index(INDEX_IMPORT)
-
-

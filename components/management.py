@@ -46,6 +46,7 @@ class Management:
             print(f'Loaded {length} records of {len(json_data)}')
             time.sleep(10)
         return len(self.import_texts_from_html('sites'))
+
     def import_array_to_index(self, index: str, requested: list):
         for data in requested:
             json_data = json.dumps(data)
@@ -84,7 +85,7 @@ class Management:
         #     self.get_index_data(index, self.show_index('sites')['hits']['total']['value']))
         hits = self.text_editor.html_to_text(self.helper.get_all_documents(es=self, index='sites'))
         for hit in hits:
-            print(self.es.index(index="texts", body=hit)['_id']+' document created')
+            print(self.es.index(index="texts", body=hit)['_id'] + ' document created')
         return hits
 
     def delete_index(self, index: str):
@@ -105,7 +106,8 @@ class Management:
         query['query']['multi_match']['query'] = sentence
         resp = self.es.search(index=index, body=query)['hits']['hits']
         words = [w for w in sentence.split(' ')]
-        return self.text_editor.search_for_phrase(words[0], words[1], resp)
+        return (self.text_editor.search_for_phrase(words[0], words[1], resp) if len(
+            words) > 1 else self.text_editor.search_for_dependant(words[0], resp))
 
     def suggest(self, value: str):
         query = SUGGEST_QUERY

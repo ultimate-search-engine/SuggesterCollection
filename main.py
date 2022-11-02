@@ -64,3 +64,10 @@ async def show_data():
 @app.get("/clean")
 async def clean_elastic():
     return elastic.clean()
+
+
+@app.get("/test")
+async def test():
+    phs = elastic.get_phrase_count('text_for_calc', 'freexian sarl')
+    # elastic.get_phrase_count('text_for_calc', 'test')
+    return phs

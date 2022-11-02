@@ -68,3 +68,21 @@ class TextEditor:
                     for t in doc['highlight']['text']:
                         arr.append(t) if f"<em>{before}</em> <em>{after}</em>" in t else None
         return len(arr)
+
+    def search_for_dependant(self, word: str, resp):
+        arr = []
+        for doc in resp:
+            if 'highlight' in doc.keys():
+                if 'headings' in doc['highlight'].keys():
+                    for h in doc['highlight']['headings']:
+                        words = h.split()
+                        if f"<em>{word}</em>" in words:
+                            arr.append(words[words.index(f"<em>{word}</em>") + 1]) if (words.index(
+                            f"<em>{word}</em>") + 1) < len(words) else None
+                if 'text' in doc['highlight'].keys():
+                    for t in doc['highlight']['text']:
+                        words = t.split()
+                        if f"<em>{word}</em>" in words:
+                            arr.append(words[words.index(f"<em>{word}</em>") + 1]) if (words.index(
+                            f"<em>{word}</em>") + 1) < len(words) else None
+        return list(set(arr))
