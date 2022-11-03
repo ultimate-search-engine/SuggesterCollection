@@ -39,7 +39,7 @@ words_pairs_mapping = {
         }
     }
 }
-suggest_query = {
+suggest_basic_query = {
     "size": 0,
     "aggregations": {
         "autocomplete": {
@@ -57,6 +57,30 @@ suggest_query = {
                 }
             }
         }
+    }
+}
+suggest_next_query = {
+    "size": 6,
+    "query": {
+        "term": {
+            "before": ""
+        }
+    },
+    "sort": {
+        "probability": "desc"
+    }
+}
+suggest_autocomplete_query = {
+    "size": 6,
+    "query": {
+        "multi_match": {
+            "query": "",
+            "type": "bool_prefix",
+            "fields": ["before", "word"]
+        }
+    },
+    "sort": {
+        "probability": "desc"
     }
 }
 search_query = {
