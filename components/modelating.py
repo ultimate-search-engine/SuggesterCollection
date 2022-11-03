@@ -63,7 +63,8 @@ class Modelator:
                     INDEX, f"{before} {word}"), field['count'])
                 if probability > 0:
                     found += 1
-                    data_to_import = self.helper.words_pairs_model(before, word, probability)
+                    data_to_import = self.helper.words_pairs_model(before, word if word != 'eeeee' else '.',
+                                                                   probability)
                     self.manager.import_record_to_index(INDEX_IMPORT, data_to_import)
                     print(data_to_import, {'phrase': self.manager.get_phrase_count(
                         INDEX, f"{before} {word}"), 'word': field['count']})

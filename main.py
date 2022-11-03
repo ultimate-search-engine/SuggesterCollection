@@ -55,6 +55,9 @@ async def deleting(index: str):
 async def show(index: str):
     return elastic.show_index(index)
 
+@app.get("/show_data/{index}")
+async def show(index: str):
+    return elastic.get_index_data(index)
 
 @app.get("/run_algorithm")
 async def show_data():

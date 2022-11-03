@@ -11,7 +11,9 @@ DEFAULT_PORT = 9200
 DEFAULT_SCHEME = 'index'
 SENTENCE_QUERY = constants.sentence_query
 SEARCH_QUERY = constants.search_query
-SUGGEST_QUERY = constants.suggest_query
+SUGGEST_BASIC_QUERY = constants.suggest_basic_query
+SUGGEST_AUTOCOMPLETE_QUERY = constants.suggest_autocomplete_query
+SUGGEST_NEXT_QUERY = constants.suggest_next_query
 
 
 class Management:
@@ -110,11 +112,26 @@ class Management:
             words) > 1 else self.text_editor.search_for_dependant(words[0], resp))
 
     def suggest(self, value: str):
-        query = SUGGEST_QUERY
-        query['aggregations']['autocomplete']['filter']['prefix']['autocomplete'] = value
-        query['aggregations']['autocomplete']['aggregations']['autocomplete']['terms']['include'] = (value + '.*')
-        buckets = self.es.search(index='texts', body=query)['aggregations']['autocomplete']['autocomplete']['buckets']
-        return {'suggestions': [suggest['key'] for suggest in buckets[:8]]}
+        # query_basic = SUGGEST_BASIC_QUERY
+        query_complete = SUGGEST_AUTOCOMPLETE_QUERY
+        query_next = SUGGEST_NEXT_QUERY
+        # query_basic['aggregations']['autocomplete']['filter']['prefix']['autocomplete'] = value
+        # query_basic['aggregations']['autocomplete']['aggregations']['autocomplete']['terms']['include'] = (value + '.*')
+        # basic_words = self.es.search(index='texts', body=query_basic)['aggregations']['autocomplete']['autocomplete'][
+        #     'buckets']
+        query_next['query']['term']['before'] = value.lower()
+        query_complete['query']['multi_match']['query'] = value
+        next_docs = self.es.search(index='words_pairs', body=query_next)['hits']['hits']
+        next_words = [doc['_source']['word'] for doc in next_docs]
+        autocomplete_docs = self.es.search(index='words_pairs', body=query_complete)['hits']['hits']
+        autocomplete_words = [word['_source']['before' if value in word['_source']['before'] else 'word'] for word in
+                              autocomplete_docs]
+        # return {'suggestions': [suggest['key'] for suggest in buckets[:8]]}
+        return {
+            'autocomplete': autocomplete_words,
+            'next_words': next_words,
+            # 'possibles': basic_words
+        }
 
     def clean(self):
         indices = self.root()['indices']
