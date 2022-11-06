@@ -85,7 +85,7 @@ class Management:
     def import_texts_from_html(self, index: str):
         # hits = self.text_editor.html_to_text(
         #     self.get_index_data(index, self.show_index('sites')['hits']['total']['value']))
-        hits = self.text_editor.html_to_text(self.helper.get_all_documents(es=self, index='sites'))
+        hits = self.text_editor.html_to_text(self.helper.get_all_documents(es=self, index=index))
         for hit in hits:
             print(self.es.index(index="texts", body=hit)['_id'] + ' document created')
         return hits
