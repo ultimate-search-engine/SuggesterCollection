@@ -28,7 +28,6 @@ class TextEditor:
             for title in headings_arr:
                 autocomplete.extend(title.split())
             autocomplete.extend(text.split())
-            print(len(autocomplete))
             hits.append(self.helper.hits_model(headings_arr, text, autocomplete))
         return hits
 
