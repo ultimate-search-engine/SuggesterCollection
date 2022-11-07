@@ -28,3 +28,7 @@ class SetUpper:
         print('Full setup finished!')
         print(self.elastic.show_index('words_pairs'))
         return True
+
+
+if __name__ == '__main__':
+    SetUpper()

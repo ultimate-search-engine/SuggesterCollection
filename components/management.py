@@ -5,15 +5,18 @@ from features.text_editor import TextEditor
 from features.helper import Helper
 import features.constatnts as constants
 import json
+import sys
 
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 9200
-DEFAULT_SCHEME = 'index'
+DEFAULT_SCHEME = 'docker_cluster'
 SENTENCE_QUERY = constants.sentence_query
 SEARCH_QUERY = constants.search_query
 SUGGEST_BASIC_QUERY = constants.suggest_basic_query
 SUGGEST_AUTOCOMPLETE_QUERY = constants.suggest_autocomplete_query
 SUGGEST_NEXT_QUERY = constants.suggest_next_query
+ARG_HOST = None if len(sys.argv) < 2 else sys.argv[1]
+ARG_PORT = None if len(sys.argv) < 3 else sys.argv[2]
 
 
 class Management:
@@ -24,7 +27,8 @@ class Management:
     text_editor = TextEditor()
     helper = Helper()
 
-    def __init__(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, scheme: str = DEFAULT_SCHEME):
+    def __init__(self, host: str = ARG_HOST if ARG_HOST else DEFAULT_HOST,
+                 port: int = ARG_PORT if ARG_PORT else DEFAULT_PORT, scheme: str = DEFAULT_SCHEME):
         self.host = host
         self.port = port
         self.scheme = scheme
@@ -83,8 +87,6 @@ class Management:
         return words_stats
 
     def import_texts_from_html(self, index: str):
-        # hits = self.text_editor.html_to_text(
-        #     self.get_index_data(index, self.show_index('sites')['hits']['total']['value']))
         hits = self.text_editor.html_to_text(self.helper.get_all_documents(es=self, index=index))
         for hit in hits:
             print(self.es.index(index="texts", body=hit)['_id'] + ' document created')
@@ -112,13 +114,8 @@ class Management:
             words) > 1 else self.text_editor.search_for_dependant(words[0], resp))
 
     def suggest(self, value: str):
-        # query_basic = SUGGEST_BASIC_QUERY
         query_complete = SUGGEST_AUTOCOMPLETE_QUERY
         query_next = SUGGEST_NEXT_QUERY
-        # query_basic['aggregations']['autocomplete']['filter']['prefix']['autocomplete'] = value
-        # query_basic['aggregations']['autocomplete']['aggregations']['autocomplete']['terms']['include'] = (value + '.*')
-        # basic_words = self.es.search(index='texts', body=query_basic)['aggregations']['autocomplete']['autocomplete'][
-        #     'buckets']
         query_next['query']['term']['before'] = value.lower()
         query_complete['query']['multi_match']['query'] = value
         next_docs = self.es.search(index='words_pairs', body=query_next)['hits']['hits']
@@ -126,11 +123,9 @@ class Management:
         autocomplete_docs = self.es.search(index='words_pairs', body=query_complete)['hits']['hits']
         autocomplete_words = [word['_source']['before' if value in word['_source']['before'] else 'word'] for word in
                               autocomplete_docs]
-        # return {'suggestions': [suggest['key'] for suggest in buckets[:8]]}
         return {
             'autocomplete': autocomplete_words,
-            'next_words': next_words,
-            # 'possibles': basic_words
+            'next_words': next_words
         }
 
     def clean(self):
