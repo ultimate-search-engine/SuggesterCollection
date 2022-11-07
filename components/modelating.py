@@ -60,7 +60,7 @@ class Modelator:
             print(f'Counted words in {counted_docs} of {len(docs)} documents')
         remaining = len(docs) - counted_docs
         print(f'{remaining} remaining')
-        words_lists.append(self.counter.count_all_words_in_docs(docs[remaining:len(docs)]))
+        words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:len(docs)]))
         return self.counter.count_all_words(words_lists)
 
     def create_model(self):
@@ -72,8 +72,6 @@ class Modelator:
             found = 0
             dependant_words = self.manager.get_phrase_count(INDEX, before)
             for word in dependant_words:
-                # for occurrence in occurrences:
-                #     word = occurrence['word']
                 probability = self.helper.get_probability(self.manager.get_phrase_count(
                     INDEX, f"{before} {word}"), field['count'])
                 if (probability > 0) and (probability < 1.01):
@@ -81,8 +79,6 @@ class Modelator:
                     data_to_import = self.helper.words_pairs_model(before, word if word != 'eeeee' else '.',
                                                                    probability)
                     self.manager.import_record_to_index(INDEX_IMPORT, data_to_import)
-                    # print(data_to_import, {'phrase': self.manager.get_phrase_count(
-                    #     INDEX, f"{before} {word}"), 'word': field['count']})
                     print(data_to_import)
                     if found == int(field['count']):
                         break
