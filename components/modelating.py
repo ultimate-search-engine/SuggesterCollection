@@ -1,14 +1,14 @@
 from components.management import Management
-from features.counter import Counter
-from features.helper import Helper
-from features.text_editor import TextEditor
-import features.constatnts as constants
+from components.features.counter import Counter
+from components.features.helper import Helper
+from components.features.text_editor import TextEditor
+import components.features.constants as constants
 import time
 from datetime import datetime
 
-MAIN_INDEX = 'sites'
-INDEX = 'text_for_calc'
-INDEX_IMPORT = 'words_pairs'
+MAIN_INDEX = constants.SOURCE_TEXTS
+INDEX = constants.TEXTS_FOR_CALCULATION
+INDEX_IMPORT = f'{constants.WORDS_PAIRS}_{datetime.now().strftime("%Y%m%d")}'
 MAPPING_TEXT = constants.text_mapping
 MAPPING_PAIRS = constants.words_pairs_mapping
 
@@ -20,7 +20,7 @@ class Modelator:
     text_editor = TextEditor()
     index = ''
 
-    def __init__(self, index: str = 'texts'):
+    def __init__(self, index: str = constants.CLEAN_TEXTS):
         self.index = index
 
     def initial_setup(self):
@@ -82,5 +82,6 @@ class Modelator:
                     print(data_to_import)
                     if found == int(field['count']):
                         break
+            x += 1
             print(f'Word {before} ({x} of {len(occurrences)}) is inserted to database')
-        return self.manager.show_index(INDEX_IMPORT)
+        return INDEX_IMPORT

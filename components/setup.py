@@ -1,5 +1,6 @@
 from components.management import Management
 from components.modelating import Modelator
+import components.features.constants as constants
 from datetime import datetime
 import time
 import schedule
@@ -21,12 +22,13 @@ class SetUpper:
         self.elastic.clean()
         self.elastic.initial_import()
         print(f'Dump imported - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
-        self.modelator.initial_setup()
+        new_name = self.modelator.initial_setup()
         print(f'Model created - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
-        self.elastic.delete_index('texts')
-        self.elastic.delete_index('sites')
+        self.modelator.helper.delete_indices(self.elastic,
+                                             [constants.CLEAN_TEXTS, constants.SOURCE_TEXTS, constants.WORDS_PAIRS])
+        self.modelator.helper.create_alias(self.elastic, constants.WORDS_PAIRS, new_name)
         print('Full setup finished!')
-        print(self.elastic.show_index('words_pairs'))
+        print(self.elastic.show_index(constants.WORDS_PAIRS))
         return True
 
 
