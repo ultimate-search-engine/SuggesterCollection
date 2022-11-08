@@ -1,0 +1,9 @@
+../../venv
+../../.git
+../../.gitignore
+../../.idea
+../../__pycache__
+../../DS_Store
+../../data/sites_*
+../../test_main.http
+../../.env*

@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from features.helper import Helper
+from components.features.helper import Helper
 import re
 
 

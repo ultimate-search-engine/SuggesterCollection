@@ -1,3 +1,9 @@
+SOURCE_TEXTS = 'sites'
+CLEAN_TEXTS = 'texts'
+TEXTS_FOR_CALCULATION = 'text_for_calc'
+WORDS_PAIRS = 'words_pairs'
+
+
 text_mapping = {
     "settings": {
         "number_of_shards": 4
@@ -110,3 +116,4 @@ sentence_query = {
         "number_of_fragments": 100
     }
 }
+

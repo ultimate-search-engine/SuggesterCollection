@@ -23,6 +23,7 @@ class Counter:
         for words in word_lists:
             if list_now == 1:
                 print(f'{list_now}. list/s of {len(word_lists)} is counted!')
+                list_now += 1
                 continue
             for word in words:
                 existed = [x for x in counted_words if x['word'] == word['word']]

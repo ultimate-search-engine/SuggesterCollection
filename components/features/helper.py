@@ -2,6 +2,7 @@ from time import sleep
 
 SIZE = 100
 
+
 class Helper:
     def get_probability(self, occurrences: int, word_count: int):
         return round(occurrences / word_count, 4)
@@ -40,3 +41,11 @@ class Helper:
             sleep(5)
             documents.extend(es.get_index_data(index, SIZE, len(documents)))
         return documents
+
+    def create_alias(self, es, alias: str, index: str):
+        return es.put_alias(index, alias)
+
+    def delete_indices(self, es, indices: list):
+        for index in indices:
+            es.delete_index(index)
+        return True

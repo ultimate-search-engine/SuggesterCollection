@@ -1,22 +1,19 @@
+from decouple import config
 import time
-
 from elasticsearch import Elasticsearch
-from features.text_editor import TextEditor
-from features.helper import Helper
-import features.constatnts as constants
+from components.features.text_editor import TextEditor
+from components.features.helper import Helper
+import components.features.constants as constants
 import json
-import sys
 
-DEFAULT_HOST = 'localhost'
-DEFAULT_PORT = 9200
-DEFAULT_SCHEME = 'docker_cluster'
+DEFAULT_HOST = config('ES_HOST')
+DEFAULT_PORT = int(config('ES_PORT'))
+DEFAULT_SCHEME = 'index'
 SENTENCE_QUERY = constants.sentence_query
 SEARCH_QUERY = constants.search_query
 SUGGEST_BASIC_QUERY = constants.suggest_basic_query
 SUGGEST_AUTOCOMPLETE_QUERY = constants.suggest_autocomplete_query
 SUGGEST_NEXT_QUERY = constants.suggest_next_query
-ARG_HOST = None if len(sys.argv) < 2 else sys.argv[1]
-ARG_PORT = None if len(sys.argv) < 3 else sys.argv[2]
 
 
 class Management:
@@ -27,8 +24,10 @@ class Management:
     text_editor = TextEditor()
     helper = Helper()
 
-    def __init__(self, host: str = ARG_HOST if ARG_HOST else DEFAULT_HOST,
-                 port: int = ARG_PORT if ARG_PORT else DEFAULT_PORT, scheme: str = DEFAULT_SCHEME):
+    def __init__(self,
+                 host: str = DEFAULT_HOST,
+                 port: int = DEFAULT_PORT,
+                 scheme: str = DEFAULT_SCHEME):
         self.host = host
         self.port = port
         self.scheme = scheme
@@ -41,17 +40,17 @@ class Management:
                 'indices': indices}
 
     def initial_import(self):
-        file = open('sites.json', 'r')
+        file = open('./data/sites.json', 'r')
         json_data = json.load(file)
         for data in json_data:
-            self.es.index(index="sites", body=data)
+            self.es.index(index=constants.SOURCE_TEXTS, body=data)
         while True:
-            length = int(self.show_index('sites').get('hits').get('total').get('value'))
+            length = int(self.show_index(constants.SOURCE_TEXTS).get('hits').get('total').get('value'))
             if length == len(json_data):
                 break
             print(f'Loaded {length} records of {len(json_data)}')
             time.sleep(10)
-        return len(self.import_texts_from_html('sites'))
+        return len(self.import_texts_from_html(constants.SOURCE_TEXTS))
 
     def import_array_to_index(self, index: str, requested: list):
         for data in requested:
@@ -68,6 +67,9 @@ class Management:
         search_query = SEARCH_QUERY
         search_query['query']['bool']['must']['query_string']['query'] = text
         return self.es.search(index=index, query=search_query)
+
+    def put_alias(self, index: str, alias: str):
+        return self.es.indices.put_alias(index=index, name=alias)
 
     def get_words_occurrences(self, index: str):
         ids = [document['_id'] for document in self.helper.get_all_documents(es=self, index=index)]
@@ -89,11 +91,16 @@ class Management:
     def import_texts_from_html(self, index: str):
         hits = self.text_editor.html_to_text(self.helper.get_all_documents(es=self, index=index))
         for hit in hits:
-            print(self.es.index(index="texts", body=hit)['_id'] + ' document created')
+            print(self.es.index(index=constants.CLEAN_TEXTS, body=hit)['_id'] + ' document created')
         return hits
 
     def delete_index(self, index: str):
-        return {"message": self.es.options(ignore_status=[400, 404]).indices.delete(index=index)}
+        by_alias = None
+        if index == constants.WORDS_PAIRS:
+            if self.es.indices.exists_alias(name=index):
+                by_alias = list(self.es.indices.get(index).keys())[0]
+        return {
+            "message": self.es.options(ignore_status=[400, 404]).indices.delete(index=by_alias if by_alias else index)}
 
     def create_index(self, index: str, mappings: object):
         return {"message": self.es.indices.create(index=index, body=mappings, pretty=True)}
@@ -118,7 +125,7 @@ class Management:
         query_next = SUGGEST_NEXT_QUERY
         query_next['query']['term']['before'] = value.lower()
         query_complete['query']['multi_match']['query'] = value
-        next_docs = self.es.search(index='words_pairs', body=query_next)['hits']['hits']
+        next_docs = self.es.search(index=constants.WORDS_PAIRS, body=query_next)['hits']['hits']
         next_words = [doc['_source']['word'] for doc in next_docs]
         autocomplete_docs = self.es.search(index='words_pairs', body=query_complete)['hits']['hits']
         autocomplete_words = [word['_source']['before' if value in word['_source']['before'] else 'word'] for word in
@@ -131,5 +138,6 @@ class Management:
     def clean(self):
         indices = self.root()['indices']
         for index in indices:
-            self.delete_index(index)
+            if constants.WORDS_PAIRS not in index:
+                self.delete_index(index)
         return {'message': 'Všechny indexy byly odstraněny.'}

@@ -1,10 +1,13 @@
 services:
   elasticsearch:
     image: elasticsearch:7.17.7
-    container_name: es
+    container_name: elasticsearch
     environment:
       discovery.type: single-node
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      node.name: node-master
+      bootstrap.memory_lock: true
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+      xpack.security.enabled: false
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -17,18 +20,42 @@ services:
       - elastic
 
   suggester:
+    build:
+      dockerfile: ./docker_builds/suggester/Dockerfile
+      context: .
+    container_name: suggester
+    environment:
+      ES_HOST: elasticsearch
+      ES_PORT: 9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elastic
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./:/app"
+    command: python3 -m uvicorn main:app --host 0.0.0.0 --reload
+
+  algorithm:
+    build:
+      dockerfile: ./docker_builds/algorithm/Dockerfile
+      context: .
+    container_name: algorithm
+    environment:
+      ES_HOST: elasticsearch
+      ES_PORT: 9200
     networks:
       - elastic
     depends_on:
       elasticsearch:
         condition: service_healthy
-    build: './'
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
-      - "./:/app"
-    command: python3 /app/main.py elasticsearch && python3 /app/setup.py elasticsearch
-
+      - "./:/algorithm"
+    command: python3 main_setup.py
 
 networks:
   elastic:
