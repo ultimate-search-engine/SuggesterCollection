@@ -18,6 +18,7 @@ SUGGEST_BASIC_QUERY = constants.suggest_basic_query
 SUGGEST_AUTOCOMPLETE_QUERY = constants.suggest_autocomplete_query
 SUGGEST_NEXT_QUERY = constants.suggest_next_query
 FIELDS = constants.FIELDS
+MAX_FIELDS = 30000
 
 
 class Management:
@@ -62,6 +63,8 @@ class Management:
             collections = self.db.get_collection_names()
             for collection in collections:
                 documents.extend(self.db.get_collection_data(collection, FIELDS))
+                if len(documents) > MAX_FIELDS:
+                    break
         return len(self.import_texts_from_html(documents))
 
     def import_array_to_index(self, index: str, requested: list):

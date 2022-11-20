@@ -23,7 +23,7 @@ class Modelator:
     def __init__(self, index: str = constants.CLEAN_TEXTS):
         self.index = index
 
-    def initial_setup(self, env: str, should_be: int):
+    def initial_setup(self, should_be: int):
         print('Running algorithm...')
         list_of_data = self.helper.get_all_documents(self.manager, self.index)
         print('Got data for the algorithm')
