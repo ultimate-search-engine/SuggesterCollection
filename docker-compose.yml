@@ -1,0 +1,64 @@
+services:
+  elasticsearch:
+    image: elasticsearch:8.5.0
+    container_name: elasticsearch
+    environment:
+      discovery.type: single-node
+      node.name: node-master
+      bootstrap.memory_lock: true
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+      xpack.security.enabled: false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9200" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - elastic
+
+  suggester:
+    build:
+      dockerfile: ./docker_builds/suggester/Dockerfile
+      context: .
+    container_name: suggester
+    environment:
+      ES_HOST: elasticsearch
+      ES_PORT: 9200
+      ENVIRONMENT: prod
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elastic
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./:/app"
+    command: python3 -m uvicorn main:app --host 0.0.0.0 --reload
+
+  algorithm:
+    build:
+      dockerfile: ./docker_builds/algorithm/Dockerfile
+      context: .
+    container_name: algorithm
+    environment:
+      ES_HOST: elasticsearch
+      ES_PORT: 9200
+      ENVIRONMENT: prod
+    networks:
+      - elastic
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    volumes:
+      - "./:/algorithm"
+    command: python3 main_setup.py
+
+networks:
+  elastic:
+    driver: bridge
