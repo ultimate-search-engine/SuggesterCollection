@@ -27,7 +27,7 @@ services:
     environment:
       ES_HOST: elasticsearch
       ES_PORT: 9200
-      ENVIRONMENT: prod
+      ENVIRONMENT: dev
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - "./:/app"
+      - "./Suggester:/app"
     command: python3 -m uvicorn main:app --host 0.0.0.0 --reload
 
   algorithm:
@@ -47,7 +47,7 @@ services:
     environment:
       ES_HOST: elasticsearch
       ES_PORT: 9200
-      ENVIRONMENT: prod
+      ENVIRONMENT: dev
     networks:
       - elastic
     depends_on:
@@ -56,7 +56,7 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - "./:/algorithm"
+      - "./Suggester:/algorithm"
     command: python3 main_setup.py
 
 networks:
