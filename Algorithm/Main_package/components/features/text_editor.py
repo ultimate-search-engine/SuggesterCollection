@@ -31,22 +31,22 @@ class TextEditor:
             hits.append(self.helper.hits_model(headings_arr, text, autocomplete))
         return hits
 
-    def format_and_words(self, headings: list, content: str):
+    def format_and_words(self, source: list):
         words = []
-        new_headings = []
-        new_sentences = []
-        better_content = content.replace("  ", "~").replace("~ ", ". ").replace("~", "")
-        sentences = re.split('\.|\!|\?', better_content)
-        for head in headings:
-            text = head.lower()
-            new_headings.append(self.assign_marks(text))
-            words.extend(self.split_to_words(text))
-        for sentence in sentences:
-            text = sentence.lower()
-            new_sentences.append(self.assign_marks(text))
-            words.extend(self.split_to_words(text))
-        new_content = ' '.join(new_sentences)
-        return [new_headings, new_content, words]
+        response = []
+        for i in range(0, len(source)):
+            sentences = source[i]
+            if type(source[i]) != 'str':
+                print(type(source[i]))
+                better_content = source[i].replace("  ", "~").replace("~ ", ". ").replace("~", "")
+                sentences = re.split('\.|\!|\?', better_content)
+            for sentence in sentences:
+                text = sentence.lower()
+                response[i].append(self.assign_marks(text))
+                words.extend(self.split_to_words(text))
+            if type(source[i]) != 'str':
+                response[i] = ' '.join(response[i])
+        return [response, words]
 
     def split_to_words(self, text: str):
         word_regex_improved = r"(\w[\w']*\w|\w)"

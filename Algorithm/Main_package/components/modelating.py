@@ -11,6 +11,7 @@ INDEX = constants.TEXTS_FOR_CALCULATION
 INDEX_IMPORT = f'{constants.WORDS_PAIRS}_{datetime.now().strftime("%Y%m%d")}'
 MAPPING_TEXT = constants.text_mapping
 MAPPING_PAIRS = constants.words_pairs_mapping
+COUNTING_AMOUNT = 200
 
 
 class Modelator:
@@ -23,7 +24,7 @@ class Modelator:
     def __init__(self, index: str = constants.CLEAN_TEXTS):
         self.index = index
 
-    def initial_setup(self, should_be: int):
+    def initial_setup(self, should_be: int = 30000):
         print('Running algorithm...')
         list_of_data = self.helper.get_all_documents(self.manager, self.index)
         print('Got data for the algorithm')
@@ -43,19 +44,20 @@ class Modelator:
 
     def insert_searchable_texts(self, data_list: dict):
         data = data_list.get('_source')
-        structured = self.text_editor.format_and_words(data['headings'], data['text'])
-        new_index_data = self.helper.clear_texts_model(structured[0], structured[1])
+        for_format = [data[key] for key in data.keys()]
+        structured = self.text_editor.format_and_words(for_format)
+        new_index_data = self.helper.clear_texts_model(structured, [key for key in data.keys()])
         self.manager.import_record_to_index(INDEX, new_index_data)
-        return structured[2]
+        return structured[1]
 
     def calculate_words(self):
         docs = self.manager.get_words_occurrences(INDEX)
         print(f'Counting words occurrences in documents started {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!')
         counted_docs = 0
         words_lists = []
-        while counted_docs < (len(docs) - 250):
-            words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:counted_docs + 250]))
-            counted_docs += 250
+        while counted_docs < (len(docs) - COUNTING_AMOUNT):
+            words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:counted_docs + COUNTING_AMOUNT]))
+            counted_docs += COUNTING_AMOUNT
             print(f'Counted words in {counted_docs} of {len(docs)} documents')
         remaining = len(docs) - counted_docs
         print(f'{remaining} remaining')

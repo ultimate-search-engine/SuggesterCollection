@@ -14,11 +14,8 @@ class Helper:
             'probability': probability
         }
 
-    def clear_texts_model(self, headings: list, text: str):
-        return {
-            'headings': headings,
-            'text': text
-        }
+    def clear_texts_model(self, data, keys):
+        return dict(zip(keys, data))
 
     def es_clean(self, es, texts_index: str, text_mapping: object, words_pairs_index: str, words_pairs_mapping: object):
         es.delete_index(texts_index)
@@ -34,10 +31,10 @@ class Helper:
             'autocomplete': autocomplete
         }
 
-    def get_all_documents(self, es, index):
+    def get_all_documents(self, es, index: str, maximum: int = 30000):
         size = es.show_index(index)['hits']['total']['value']
         documents = es.get_index_data(index, SIZE, 0)
-        while len(documents) < size:
+        while len(documents) < (size if size < maximum else maximum):
             sleep(5)
             documents.extend(es.get_index_data(index, SIZE, len(documents)))
         return documents
