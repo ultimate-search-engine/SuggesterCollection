@@ -1,9 +1,11 @@
+from decouple import config
 from components.management import Management
 from components.modelating import Modelator
 import components.features.constants as constants
 from datetime import datetime
 import time
 import schedule
+MAX_FIELDS = int(config('LIMIT'))
 
 
 class SetUpper:
@@ -20,9 +22,9 @@ class SetUpper:
     def __full_setup(self):
         print('Full setup started!')
         self.elastic.clean()
-        # amount = self.elastic.initial_import()
+        # amount = self.elastic.initial_import(MAX_FIELDS)
         # print(f'HTML data (amount: {amount}) imported - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
-        new_name = self.modelator.initial_setup()
+        new_name = self.modelator.initial_setup(MAX_FIELDS)
         print(f'Model created - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
         self.modelator.helper.delete_indices(self.elastic,
                                              [constants.CLEAN_TEXTS, constants.SOURCE_TEXTS, constants.WORDS_PAIRS])

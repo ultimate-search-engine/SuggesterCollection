@@ -1,9 +1,6 @@
-package org.use.binar.algorithm
+import kotlin.system.exitProcess
 
-import org.use.binar.algorithm.elastic.Services
+suspend fun main() {
+    exitProcess(0)
 
-fun run(options: String) = when {
-    true -> println("True")
-    else -> println("False")
 }
-fun main(args: Array<String>) = run("Hello world")

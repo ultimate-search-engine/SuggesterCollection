@@ -26,11 +26,11 @@ class Modelator:
 
     def initial_setup(self, should_be: int = 30000):
         print('Running algorithm...')
-        list_of_data = self.helper.get_all_documents(self.manager, self.index)
+        list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
         print('Got data for the algorithm')
         while len(list_of_data) < should_be:
             time.sleep(5)
-            list_of_data = self.helper.get_all_documents(self.manager, self.index)
+            list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
         self.helper.es_clean(Management(), INDEX, MAPPING_TEXT, INDEX_IMPORT, MAPPING_PAIRS)
         print('Elastic has been cleaned')
         for data_list in list_of_data:

@@ -18,7 +18,6 @@ SUGGEST_BASIC_QUERY = constants.suggest_basic_query
 SUGGEST_AUTOCOMPLETE_QUERY = constants.suggest_autocomplete_query
 SUGGEST_NEXT_QUERY = constants.suggest_next_query
 FIELDS = constants.FIELDS
-MAX_FIELDS = 30000
 
 
 class Management:
@@ -45,9 +44,9 @@ class Management:
         return {"message": self.es.info(),
                 'indices': indices}
 
-    def initial_import(self):
+    def initial_import(self, maximum: int = 300000):
         documents = []
-        if ENV != 'prod':
+        if ENV == 'dev':
             file = open('./data/sites.json', 'r')
             json_data = json.load(file)
             for data in json_data:
@@ -59,13 +58,13 @@ class Management:
                 print(f'Loaded {length} records of {len(json_data)}')
                 time.sleep(10)
             documents = self.helper.get_all_documents(es=self, index=constants.SOURCE_TEXTS)
-        elif ENV == 'prod':
+        elif ENV == 'dev_db':
             documents = [doc for doc in self.helper.get_all_documents(self.es, 'ency')]
         else:
             collections = self.db.get_collection_names()
             for collection in collections:
                 documents.extend(self.db.get_collection_data(collection, FIELDS))
-                if len(documents) > MAX_FIELDS:
+                if len(documents) > maximum:
                     break
         return len(self.import_texts_from_html(documents))
 

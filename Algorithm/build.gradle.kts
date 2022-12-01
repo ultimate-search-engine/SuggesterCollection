@@ -4,17 +4,20 @@ plugins {
     kotlin("jvm") version "1.7.10"
 }
 
-group = "org.use.binar"
+group = "com.use.binar.algorithm"
 version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven("https://jitpack.io") {
+        content {
+            includeGroup("com.github.jillesvangurp.kt-search")
+        }
+    }
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
-    implementation("co.elastic.clients:elasticsearch-java:8.5.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.0")
+    implementation("com.github.jillesvangurp.kt-search:search-client:1.99.14")
 }
 
 tasks.test {
@@ -28,7 +31,7 @@ tasks.withType<KotlinCompile> {
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        attributes["Main-Class"] = "com.use.binar.MainKt"
+        attributes["Main-Class"] = "com.use.binar.algorithm.MainKt"
     }
     from(configurations.compileClasspath.map { config -> config.map { if (it.isDirectory) it else zipTree(it) } })
 
