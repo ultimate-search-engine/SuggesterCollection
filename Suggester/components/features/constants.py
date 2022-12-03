@@ -3,6 +3,10 @@ CLEAN_TEXTS = 'texts'
 TEXTS_FOR_CALCULATION = 'text_for_calc'
 WORDS_PAIRS = 'words_pairs'
 FIELDS = ['finalUrl', 'content']
+ALL_FIELDS = ['content.headings.h1', 'content.headings.h2', 'content.headings.h3', 'content.headings.h4',
+                       'content.headings.h5', 'content.headings.h6', 'content.title', 'content.text',
+                       'content.description',
+                       'content.keywords', 'content.anchors', 'content.boldText']
 
 
 text_mapping = {
@@ -11,20 +15,95 @@ text_mapping = {
     },
     "mappings": {
         'properties': {
-            'headings': {
-                'type': 'text',
-                "analyzer": "english",
+            'content': {
+                'title': {
+                    'type': 'text',
+                    "analyzer": "english",
 
-                "fielddata": True,
-                "term_vector": "with_positions_offsets"
-            },
-            'text': {
-                'type': 'text',
-                "analyzer": "english",
+                    "fielddata": True,
+                    "term_vector": "with_positions_offsets"
+                },
+                'description': {
+                    'type': 'text',
+                    "analyzer": "english",
 
-                "fielddata": True,
-                "term_vector": "with_positions_offsets"
+                    "fielddata": True,
+                    "term_vector": "with_positions_offsets"
+                },
+                'keywords': {
+                    'type': 'text',
+                    "analyzer": "english",
+
+                    "fielddata": True,
+                    "term_vector": "with_positions_offsets"
+                },
+                'anchors': {
+                    'type': 'text',
+                    "analyzer": "english",
+
+                    "fielddata": True,
+                    "term_vector": "with_positions_offsets"
+                },
+                'boldText': {
+                    'type': 'text',
+                    "analyzer": "english",
+
+                    "fielddata": True,
+                    "term_vector": "with_positions_offsets"
+                },
+                'text': {
+                    'type': 'text',
+                    "analyzer": "english",
+
+                    "fielddata": True,
+                    "term_vector": "with_positions_offsets"
+                },
+                'headings': {
+                    'h1': {
+                        'type': 'text',
+                        "analyzer": "english",
+
+                        "fielddata": True,
+                        "term_vector": "with_positions_offsets"
+                    },
+                    'h2': {
+                        'type': 'text',
+                        "analyzer": "english",
+
+                        "fielddata": True,
+                        "term_vector": "with_positions_offsets"
+                    },
+                    'h3': {
+                        'type': 'text',
+                        "analyzer": "english",
+
+                        "fielddata": True,
+                        "term_vector": "with_positions_offsets"
+                    },
+                    'h4': {
+                        'type': 'text',
+                        "analyzer": "english",
+
+                        "fielddata": True,
+                        "term_vector": "with_positions_offsets"
+                    },
+                    'h5': {
+                        'type': 'text',
+                        "analyzer": "english",
+
+                        "fielddata": True,
+                        "term_vector": "with_positions_offsets"
+                    },
+                    'h6': {
+                        'type': 'text',
+                        "analyzer": "english",
+
+                        "fielddata": True,
+                        "term_vector": "with_positions_offsets"
+                    }
+                }
             }
+
         }
     }
 }
@@ -105,7 +184,7 @@ sentence_query = {
     'query': {
         "multi_match": {
             'query': '',
-            'fields': ['headings', 'text']
+            'fields': ALL_FIELDS
         }
     },
     "highlight": {
@@ -117,4 +196,3 @@ sentence_query = {
         "number_of_fragments": 100
     }
 }
-

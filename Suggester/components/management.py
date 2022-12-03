@@ -1,14 +1,7 @@
 from decouple import config
-import time
-from components.dbconnection import DBConnection
 from elasticsearch import Elasticsearch
-from components.features.text_editor import TextEditor
-from components.features.helper import Helper
 import components.features.constants as constants
-import json
-from components.features.multiprocessor import Multiprocess
 
-ENV = config('ENVIRONMENT')
 DEFAULT_HOST = config('ES_HOST')
 DEFAULT_PORT = int(config('ES_PORT'))
 DEFAULT_SCHEME = 'index'
@@ -26,9 +19,6 @@ class Management:
     port = None
     scheme = ""
     es = None
-    text_editor = TextEditor()
-    helper = Helper()
-    db = DBConnection()
 
     def __init__(self,
                  host: str = DEFAULT_HOST,
@@ -44,81 +34,6 @@ class Management:
         indices = [index_name for index_name, value in indices.items()]
         return {"message": self.es.info(),
                 'indices': indices}
-
-    def initial_import(self):
-        documents = []
-        if ENV != 'prod':
-            file = open('./data/sites.json', 'r')
-            json_data = json.load(file)
-            for data in json_data:
-                self.es.index(index=constants.SOURCE_TEXTS, body=data)
-            while True:
-                length = int(self.show_index(constants.SOURCE_TEXTS).get('hits').get('total').get('value'))
-                if length == len(json_data):
-                    break
-                print(f'Loaded {length} records of {len(json_data)}')
-                time.sleep(10)
-            documents = self.helper.get_all_documents(es=self, index=constants.SOURCE_TEXTS)
-        else:
-            collections = self.db.get_collection_names()
-            for collection in collections:
-                documents.extend(self.db.get_collection_data(collection, FIELDS))
-                if len(documents) > MAX_FIELDS:
-                    break
-        return len(self.import_texts_from_html(documents))
-
-    def import_array_to_index(self, index: str, requested: list):
-        for data in requested:
-            json_data = json.dumps(data)
-            self.es.index(index=index, body=json_data)
-        return {'message': self.es.search(index=index)}
-
-    def import_record_to_index(self, index: str, requested: object):
-        data = json.dumps(requested)
-        self.es.index(index=index, body=data)
-        return {'message': self.es.search(index=index)}
-
-    def search_text(self, text: str, index: str):
-        search_query = SEARCH_QUERY
-        search_query['query']['bool']['must']['query_string']['query'] = text
-        return self.es.search(index=index, query=search_query)
-
-    def put_alias(self, index: str, alias: str):
-        return self.es.indices.put_alias(index=index, name=alias)
-
-    def get_words_occurrences(self, index: str):
-        ids = [document['_id'] for document in self.helper.get_all_documents(es=self, index=index)]
-        print(f'Documents: {len(ids)}')
-        position_now = 0
-        words_stats = []
-        print('Getting vectors...')
-        while position_now < len(ids):
-            words_stats.extend(self.es.mtermvectors(index=index, fields=['headings', 'text'],
-                                                    term_statistics=True,
-                                                    ids=ids[position_now:position_now + (
-                                                        100 if len(ids) - position_now > 100 else
-                                                        len(ids) - position_now)])['docs'])
-            position_now += (100 if len(ids) - position_now > 100 else
-                             len(ids) - position_now)
-            print(f'Got {position_now} vectors statistic')
-        return words_stats
-
-    def import_texts_from_html(self, documents: list):
-        #
-        processed = 0
-        documents_list = []
-        hits = []
-        while processed < len(documents):
-            for i in range(6):
-                documents_list.append(
-                    documents[processed:min(processed + 1000, len(documents))])
-                processed += 1000
-            for done in Multiprocess(6, self.text_editor.html_to_text, documents_list).run():
-                hits.extend(done)
-            documents_list = []
-        for hit in hits:
-            self.es.index(index=constants.CLEAN_TEXTS, body=hit)
-        return hits
 
     def delete_index(self, index: str):
         by_alias = None
@@ -137,14 +52,6 @@ class Management:
 
     def show_index(self, index: str):
         return self.es.search(index=index)
-
-    def get_phrase_count(self, index: str, sentence: str):
-        query = SENTENCE_QUERY
-        query['query']['multi_match']['query'] = sentence
-        resp = self.es.search(index=index, body=query)['hits']['hits']
-        words = [w for w in sentence.split(' ')]
-        return (self.text_editor.search_for_phrase(words[0], words[1], resp) if len(
-            words) > 1 else self.text_editor.search_for_dependant(words[0], resp))
 
     def suggest(self, value: str):
         query_complete = SUGGEST_AUTOCOMPLETE_QUERY

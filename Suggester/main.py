@@ -1,11 +1,9 @@
-from components.modelating import Modelator
 from fastapi import FastAPI
 from components.management import Management
 from pydantic import BaseModel
 
 app = FastAPI()
 elastic = Management()
-modelator = Modelator()
 
 
 class SuggestRequest(BaseModel):
@@ -21,16 +19,6 @@ async def root():
 @app.post("/suggest")
 async def suggest(request_body: SuggestRequest):
     return elastic.suggest(request_body.last_word)
-
-
-@app.get("/import")
-async def import_initial():
-    return elastic.initial_import()
-
-
-@app.post("/import/{index}")
-async def importing(index: str):
-    return elastic.import_texts_from_html(index)
 
 
 @app.post("/create/{index}")
@@ -52,12 +40,6 @@ async def show(index: str):
 @app.get("/show_data/{index}")
 async def show(index: str):
     return elastic.get_index_data(index)
-
-
-@app.get("/run_algorithm")
-async def show_data():
-    return modelator.initial_setup()
-
 
 @app.get("/clean")
 async def clean_elastic():
