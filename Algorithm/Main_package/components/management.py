@@ -59,13 +59,16 @@ class Management:
                 time.sleep(10)
             documents = self.helper.get_all_documents(es=self, index=constants.SOURCE_TEXTS)
         elif ENV == 'dev_db':
-            documents = [doc for doc in self.helper.get_all_documents(self.es, 'ency')]
-        else:
             collections = self.db.get_collection_names()
             for collection in collections:
                 documents.extend(self.db.get_collection_data(collection, FIELDS))
                 if len(documents) > maximum:
                     break
+        else:
+            documents = [doc for doc in self.helper.get_all_documents(self, 'ency')]
+            for hit in documents:
+                self.es.index(index=constants.CLEAN_TEXTS, body=hit['_source'])
+            return len(documents)
         return len(self.import_texts_from_html(documents))
 
     def import_array_to_index(self, index: str, requested: list):
@@ -94,13 +97,14 @@ class Management:
         words_stats = []
         print('Getting vectors...')
         while position_now < len(ids):
+            position_old = position_now
+            position_now = (position_now + (
+                100 if len(ids) - position_now > 100 else
+                len(ids) - position_now)) if len(ids) > 100 else len(ids)
             words_stats.extend(self.es.mtermvectors(index=index, fields=constants.ALL_FIELDS,
                                                     term_statistics=True,
-                                                    ids=ids[position_now:position_now + (
-                                                        100 if len(ids) - position_now > 100 else
-                                                        len(ids) - position_now)])['docs'])
-            position_now += (100 if len(ids) - position_now > 100 else
-                             len(ids) - position_now)
+                                                    ids=ids[position_old:position_now])[
+                                   'docs'])
             print(f'Got {position_now} vectors statistic')
         return words_stats
 
@@ -132,7 +136,10 @@ class Management:
         return {"message": self.es.indices.create(index=index, body=mappings, pretty=True)}
 
     def get_index_data(self, index: str, size: int = 100, from_doc: int = 0):
-        return self.es.search(index=index, size=size, from_=from_doc, body={"query": {"match_all": {}}}).get(
+        sort = [{"_id": {"order": "asc"}}]
+        sort.extend({"ranks.pagerank": {"order": "desc"}}) if index == 'ency' else None
+        return self.es.search(index=index, size=size, from_=from_doc,
+                              body={"sort": sort, "query": {"match_all": {}}}).get(
             'hits').get('hits')
 
     def show_index(self, index: str):
@@ -146,10 +153,11 @@ class Management:
         return (self.text_editor.search_for_phrase(words[0], words[1], resp) if len(
             words) > 1 else self.text_editor.search_for_dependant(words[0], resp))
 
-
     def clean(self):
         indices = self.root()['indices']
         for index in indices:
-            if constants.WORDS_PAIRS not in index:
+            if index == constants.DEFAULT_INDEX or constants.WORDS_PAIRS in index:
+                continue
+            else:
                 self.delete_index(index)
         return {'message': 'Všechny indexy byly odstraněny.'}

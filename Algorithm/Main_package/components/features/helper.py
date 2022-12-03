@@ -15,7 +15,7 @@ class Helper:
         }
 
     def clear_texts_model(self, data, keys):
-        return dict(zip(keys, data))
+        return {keys[i]: data[i] for i in range(len(keys))}
 
     def es_clean(self, es, texts_index: str, text_mapping: object, words_pairs_index: str, words_pairs_mapping: object):
         es.delete_index(texts_index)

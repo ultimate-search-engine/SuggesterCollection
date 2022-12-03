@@ -43,24 +43,24 @@ class Modelator:
         return self.create_model()
 
     def insert_searchable_texts(self, data_list: dict):
-        data = data_list.get('_source')
+        data = data_list.get('_source').get('content')
         for_format = [data[key] for key in data.keys()]
         structured = self.text_editor.format_and_words(for_format)
-        new_index_data = self.helper.clear_texts_model(structured, [key for key in data.keys()])
+        new_index_data = self.helper.clear_texts_model(structured[0], [key for key in data.keys()])
         self.manager.import_record_to_index(INDEX, new_index_data)
-        return structured[1]
+        return None
 
     def calculate_words(self):
         docs = self.manager.get_words_occurrences(INDEX)
         print(f'Counting words occurrences in documents started {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!')
         counted_docs = 0
         words_lists = []
-        while counted_docs < (len(docs) - COUNTING_AMOUNT):
-            words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:counted_docs + COUNTING_AMOUNT]))
-            counted_docs += COUNTING_AMOUNT
+        while counted_docs < (len(docs) - COUNTING_AMOUNT if len(docs) > COUNTING_AMOUNT else len(docs)):
+            end = (counted_docs + COUNTING_AMOUNT) if COUNTING_AMOUNT < len(docs) else len(docs)
+            words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:end]))
+            counted_docs = end
             print(f'Counted words in {counted_docs} of {len(docs)} documents')
-        remaining = len(docs) - counted_docs
-        print(f'{remaining} remaining')
+        print(f'{len(docs) - counted_docs} remaining')
         words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:len(docs)]))
         return self.counter.count_all_words(words_lists)
 

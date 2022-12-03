@@ -5,7 +5,8 @@ class Counter:
         for doc in docs:
             all_words = {}
             term_vectors = doc['term_vectors']
-            all_words.update(term_vectors[key]['terms'] for key in term_vectors.keys())
+            for key in term_vectors.keys():
+                all_words.update(term_vectors[key]['terms'])
             for key, value in all_words.items():
                 existed = [x for x in list_of_words if x['word'] == key]
                 insert_val = {'word': key, 'count': value['term_freq'] + (existed[0]['count'] if existed else 0)}
