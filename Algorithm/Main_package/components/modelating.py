@@ -2,6 +2,7 @@ from components.management import Management
 from components.features.counter import Counter
 from components.features.helper import Helper
 from components.features.text_editor import TextEditor
+from components.features.multiprocessor import Multiprocess
 import components.features.constants as constants
 import time
 from datetime import datetime
@@ -33,8 +34,12 @@ class Modelator:
             list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
         self.helper.es_clean(Management(), INDEX, MAPPING_TEXT, INDEX_IMPORT, MAPPING_PAIRS)
         print('Elastic has been cleaned')
-        for data_list in list_of_data:
-            self.insert_searchable_texts(data_list)
+        data_for_process = self.helper.list_for_multi(6, list_of_data)
+        for data_list in data_for_process:
+            results = Multiprocess(len(data_list), self.insert_searchable_texts, data_list).run()
+            if len(results) == len(data_list):
+                print("Done another list")
+            # self.insert_searchable_texts(data_list)
         loaded_docs = self.manager.show_index(INDEX)['hits']['total']['value']
         while loaded_docs < len(list_of_data):
             print(f'Wait! Loaded only {loaded_docs} of {len(list_of_data)} documents!')
@@ -43,12 +48,15 @@ class Modelator:
         return self.create_model()
 
     def insert_searchable_texts(self, data_list: dict):
+        manager = Management()
         data = data_list.get('_source').get('content')
         for_format = [data[key] for key in data.keys()]
         structured = self.text_editor.format_and_words(for_format)
         new_index_data = self.helper.clear_texts_model(structured[0], [key for key in data.keys()])
-        self.manager.import_record_to_index(INDEX, new_index_data)
+        manager.import_record_to_index(INDEX, new_index_data)
         return None
+
+    # TODO add to Ktolin
 
     def calculate_words(self):
         docs = self.manager.get_words_occurrences(INDEX)

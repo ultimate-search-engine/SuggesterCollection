@@ -31,6 +31,18 @@ class Helper:
             'autocomplete': autocomplete
         }
 
+    def list_for_multi(self, proc_amount: int, original_list: list):
+        inserted = 0
+        new_list = []
+        while inserted < len(original_list):
+            if (len(original_list) - inserted) >= proc_amount:
+                new_list.append(original_list[inserted:inserted + proc_amount])
+                inserted += proc_amount
+            else:
+                new_list.append(original_list[inserted:])
+                inserted = len(original_list)
+        return new_list
+
     def get_all_documents(self, es, index: str, maximum: int = 30000):
         size = es.show_index(index)['hits']['total']['value']
         documents = es.get_index_data(index, SIZE, 0)

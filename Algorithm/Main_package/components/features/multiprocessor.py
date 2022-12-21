@@ -10,8 +10,12 @@ class Multiprocess:
         self.args = args
 
     def run(self):
-        set_start_method('fork')
+        try:
+            set_start_method('fork')
+        except RuntimeError:
+            pass
         results = []
+        # print(self.args)
         with Pool(processes=self.num_processes) as pool:
             results.extend(pool.map(self.target, self.args))
         return results

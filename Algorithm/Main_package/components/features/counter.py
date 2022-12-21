@@ -1,4 +1,6 @@
 class Counter:
+    # TODO add to Ktolin
+
     def count_all_words_in_docs(self, docs: list):
         list_of_words = []
         position = 1
@@ -16,6 +18,8 @@ class Counter:
             print(f'{position} document/s of {len(docs)} are counted!')
             position += 1
         return list_of_words
+
+    # TODO add to Ktolin
 
     def count_all_words(self, word_lists: list):
         counted_words = word_lists[0]

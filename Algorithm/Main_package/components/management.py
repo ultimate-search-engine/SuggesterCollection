@@ -20,6 +20,12 @@ SUGGEST_NEXT_QUERY = constants.suggest_next_query
 FIELDS = constants.FIELDS
 
 
+def multi_import(body: any):
+    # print(body)
+    Elasticsearch([{"host": DEFAULT_HOST, "port": DEFAULT_PORT, "scheme": DEFAULT_SCHEME}]).index(
+        index=constants.CLEAN_TEXTS, body=body['_source'])
+
+
 class Management:
     host = ""
     port = None
@@ -65,9 +71,12 @@ class Management:
                 if len(documents) > maximum:
                     break
         else:
-            documents = [doc for doc in self.helper.get_all_documents(self, 'ency')]
-            for hit in documents:
-                self.es.index(index=constants.CLEAN_TEXTS, body=hit['_source'])
+            documents = [doc for doc in self.helper.get_all_documents(self, 'ency', maximum)]
+            multi_docs = self.helper.list_for_multi(6, documents)
+            for hit in multi_docs:
+                done = Multiprocess(len(hit), multi_import, hit).run()
+                if len(done) == len(hit):
+                    print("Imported")
             return len(documents)
         return len(self.import_texts_from_html(documents))
 
@@ -136,7 +145,7 @@ class Management:
         return {"message": self.es.indices.create(index=index, body=mappings, pretty=True)}
 
     def get_index_data(self, index: str, size: int = 100, from_doc: int = 0):
-        sort = [{"_id": {"order": "asc"}}]
+        sort = [{}]
         sort.extend({"ranks.pagerank": {"order": "desc"}}) if index == 'ency' else None
         return self.es.search(index=index, size=size, from_=from_doc,
                               body={"sort": sort, "query": {"match_all": {}}}).get(
@@ -156,7 +165,7 @@ class Management:
     def clean(self):
         indices = self.root()['indices']
         for index in indices:
-            if index == constants.DEFAULT_INDEX or constants.WORDS_PAIRS in index:
+            if (index == constants.DEFAULT_INDEX in index) or (constants.WORDS_PAIRS in index):
                 continue
             else:
                 self.delete_index(index)
