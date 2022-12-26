@@ -53,7 +53,7 @@ class Management:
     def show_index(self, index: str):
         return self.es.search(index=index)
 
-    def suggest(self, value: str):
+    def suggest(self, value: str, sentence: str):
         query_complete = SUGGEST_AUTOCOMPLETE_QUERY
         query_next = SUGGEST_NEXT_QUERY
         query_next['query']['term']['before'] = value.lower()
@@ -61,7 +61,7 @@ class Management:
         next_docs = self.es.search(index=constants.WORDS_PAIRS, body=query_next)['hits']['hits']
         next_words = [doc['_source']['word'] for doc in next_docs]
         autocomplete_docs = self.es.search(index='words_pairs', body=query_complete)['hits']['hits']
-        autocomplete_words = [word['_source']['before' if value in word['_source']['before'] else 'word'] for word in
+        autocomplete_words = [word['_source']['before' if value.lower() in word['_source']['before'] else 'word'] for word in
                               autocomplete_docs]
         return {
             'autocomplete': autocomplete_words,

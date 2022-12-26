@@ -1,10 +1,22 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from decouple import config
 from components.management import Management
 from pydantic import BaseModel
 
 app = FastAPI()
 elastic = Management()
 
+origins = [
+    '*'
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class SuggestRequest(BaseModel):
     whole_search: str
@@ -18,7 +30,7 @@ async def root():
 
 @app.post("/suggest")
 async def suggest(request_body: SuggestRequest):
-    return elastic.suggest(request_body.last_word)
+    return elastic.suggest(request_body.last_word.lower(), request_body.whole_search.lower())
 
 
 @app.post("/create/{index}")
