@@ -77,6 +77,7 @@ class Modelator:
         print(f'Counting words occurrences in documents is done {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!')
         x = 0
         for field in occurrences:
+            self.helper.create_alias(self.manager, constants.WORDS_PAIRS, INDEX_IMPORT) if (x and x < 2) else None
             before = field['word']
             found = 0
             dependant_words = self.manager.get_phrase_count(INDEX, before)

@@ -28,7 +28,7 @@ class SetUpper:
         print(f'Model created - {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
         self.modelator.helper.delete_indices(self.elastic,
                                              [constants.CLEAN_TEXTS, constants.WORDS_PAIRS])
-        self.modelator.helper.create_alias(self.elastic, constants.WORDS_PAIRS, new_name)
+        # self.modelator.helper.create_alias(self.elastic, constants.WORDS_PAIRS, new_name)
         print('Full setup finished!')
         print(self.elastic.show_index(constants.WORDS_PAIRS))
         return True
