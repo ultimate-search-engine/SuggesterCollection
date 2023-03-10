@@ -1,3 +1,4 @@
+import math
 from time import sleep
 
 SIZE = 100
@@ -17,7 +18,7 @@ class Helper:
     def clear_texts_model(self, data, keys):
         return {keys[i]: data[i] for i in range(len(keys))}
 
-    def es_clean(self, es, texts_index: str, text_mapping: object, words_pairs_index: str, words_pairs_mapping: object):
+    def clean_elasticsearch(self, es, texts_index: str, text_mapping: object, words_pairs_index: str, words_pairs_mapping: object):
         es.delete_index(texts_index)
         es.create_index(texts_index, text_mapping)
         es.delete_index(words_pairs_index)
@@ -31,13 +32,30 @@ class Helper:
             'autocomplete': autocomplete
         }
 
-    def list_for_multi(self, proc_amount: int, original_list: list):
+    def prepare_mixes_bundles(self, bundles: list):
+        if len(bundles) == 2:
+            return [bundles[0] + bundles[1]]
+        mixes = []
+        for i in range(0, len(bundles), 2):
+            mixes.append(bundles[i] + bundles[i + 1])
+        if len(bundles) % 2 != 0:
+            mixes.append(bundles[-1])
+        return mixes
+    def prepare_bundles_for_multiprocessing(self, process_amount: int, original_list: list):
+        quantity_of_documents = math.ceil(len(original_list)/process_amount)
+        list_of_bundles = []
+        for i in range(process_amount - 1):
+            list_of_bundles.append(original_list[i*quantity_of_documents:(i+1)*quantity_of_documents])
+        list_of_bundles.append(original_list[(process_amount - 1)*quantity_of_documents:])
+        return list_of_bundles
+
+    def prepare_list_for_multiprocessing(self, process_amount: int, original_list: list):
         inserted = 0
         new_list = []
         while inserted < len(original_list):
-            if (len(original_list) - inserted) >= proc_amount:
-                new_list.append(original_list[inserted:inserted + proc_amount])
-                inserted += proc_amount
+            if (len(original_list) - inserted) >= process_amount:
+                new_list.append(original_list[inserted:inserted + process_amount])
+                inserted += process_amount
             else:
                 new_list.append(original_list[inserted:])
                 inserted = len(original_list)

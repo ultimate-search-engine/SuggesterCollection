@@ -21,7 +21,6 @@ FIELDS = constants.FIELDS
 
 
 def multi_import(body: any):
-    # print(body)
     Elasticsearch([{"host": DEFAULT_HOST, "port": DEFAULT_PORT, "scheme": DEFAULT_SCHEME}]).index(
         index=constants.CLEAN_TEXTS, body=body['_source'])
 
@@ -72,7 +71,7 @@ class Management:
                     break
         else:
             documents = [doc for doc in self.helper.get_all_documents(self, 'ency', maximum)]
-            multi_docs = self.helper.list_for_multi(6, documents)
+            multi_docs = self.helper.prepare_list_for_multiprocessing(constants.NUMBER_OF_PROCESSES, documents)
             for hit in multi_docs:
                 done = Multiprocess(len(hit), multi_import, hit).run()
                 if len(done) == len(hit):

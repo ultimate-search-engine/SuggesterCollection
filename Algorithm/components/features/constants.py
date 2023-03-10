@@ -1,5 +1,5 @@
 from decouple import config
-
+NUMBER_OF_PROCESSES = int(config('NUMBER_OF_PROCESSES')) if config('NUMBER_OF_PROCESSES') else 6
 DEFAULT_INDEX = 'ency'
 SOURCE_TEXTS = 'sites' if 'prod' not in config('ENVIRONMENT') else DEFAULT_INDEX
 CLEAN_TEXTS = 'texts'
@@ -19,92 +19,6 @@ text_mapping = {
         'properties': {
             'content': {
                 "type": "nested",
-                #     'title': {
-                #         'type': 'text',
-                #         "analyzer": "english",
-                #
-                #         "fielddata": True,
-                #         "term_vector": "with_positions_offsets"
-                #     },
-                #     'description': {
-                #         'type': 'text',
-                #         "analyzer": "english",
-                #
-                #         "fielddata": True,
-                #         "term_vector": "with_positions_offsets"
-                #     },
-                #     'keywords': {
-                #         'type': 'text',
-                #         "analyzer": "english",
-                #
-                #         "fielddata": True,
-                #         "term_vector": "with_positions_offsets"
-                #     },
-                #     'anchors': {
-                #         'type': 'text',
-                #         "analyzer": "english",
-                #
-                #         "fielddata": True,
-                #         "term_vector": "with_positions_offsets"
-                #     },
-                #     'boldText': {
-                #         'type': 'text',
-                #         "analyzer": "english",
-                #
-                #         "fielddata": True,
-                #         "term_vector": "with_positions_offsets"
-                #     },
-                #     'text': {
-                #         'type': 'text',
-                #         "analyzer": "english",
-                #
-                #         "fielddata": True,
-                #         "term_vector": "with_positions_offsets"
-                #     },
-                #     'headings': {
-                #         'h1': {
-                #             'type': 'text',
-                #             "analyzer": "english",
-                #
-                #             "fielddata": True,
-                #             "term_vector": "with_positions_offsets"
-                #         },
-                #         'h2': {
-                #             'type': 'text',
-                #             "analyzer": "english",
-                #
-                #             "fielddata": True,
-                #             "term_vector": "with_positions_offsets"
-                #         },
-                #         'h3': {
-                #             'type': 'text',
-                #             "analyzer": "english",
-                #
-                #             "fielddata": True,
-                #             "term_vector": "with_positions_offsets"
-                #         },
-                #         'h4': {
-                #             'type': 'text',
-                #             "analyzer": "english",
-                #
-                #             "fielddata": True,
-                #             "term_vector": "with_positions_offsets"
-                #         },
-                #         'h5': {
-                #             'type': 'text',
-                #             "analyzer": "english",
-                #
-                #             "fielddata": True,
-                #             "term_vector": "with_positions_offsets"
-                #         },
-                #         'h6': {
-                #             'type': 'text',
-                #             "analyzer": "english",
-                #
-                #             "fielddata": True,
-                #             "term_vector": "with_positions_offsets"
-                #         }
-                #     }
             }
         }
     }

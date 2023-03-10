@@ -27,25 +27,37 @@ class Modelator:
 
     def initial_setup(self, should_be: int = 30000):
         print('Running algorithm...')
-        list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
-        print('Got data for the algorithm')
-        while len(list_of_data) < should_be:
-            time.sleep(5)
-            list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
-        self.helper.es_clean(Management(), INDEX, MAPPING_TEXT, INDEX_IMPORT, MAPPING_PAIRS)
-        print('Elastic has been cleaned')
-        data_for_process = self.helper.list_for_multi(6, list_of_data)
-        for data_list in data_for_process:
-            results = Multiprocess(len(data_list), self.insert_searchable_texts, data_list).run()
-            if len(results) == len(data_list):
-                print("Done another list")
-            # self.insert_searchable_texts(data_list)
+        self.get_data(should_be)
+        return self.create_model()
+
+    def wait_for_data(self, list_of_data: list):
         loaded_docs = self.manager.show_index(INDEX)['hits']['total']['value']
         while loaded_docs < len(list_of_data):
             print(f'Wait! Loaded only {loaded_docs} of {len(list_of_data)} documents!')
             time.sleep(5)
             loaded_docs = self.manager.show_index(INDEX)['hits']['total']['value']
-        return self.create_model()
+        print('Data are processed, loaded and prepared for the model')
+        pass
+
+    def process_data(self, data_lists: list):
+        data_for_process = self.helper.prepare_list_for_multiprocessing(constants.NUMBER_OF_PROCESSES, data_lists)
+        for data_list in data_for_process:
+            results = Multiprocess(len(data_list), self.insert_searchable_texts, data_list).run()
+            if len(results) == len(data_list):
+                print("Done another list")
+        self.wait_for_data(data_lists)
+        pass
+
+    def get_data(self, should_be: int):
+        list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
+        while len(list_of_data) < should_be:
+            time.sleep(5)
+            list_of_data = self.helper.get_all_documents(self.manager, self.index, should_be)
+        print('Got data for the algorithm')
+        self.helper.clean_elasticsearch(Management(), INDEX, MAPPING_TEXT, INDEX_IMPORT, MAPPING_PAIRS)
+        print('Elastic has been cleaned')
+        self.process_data(list_of_data)
+        pass
 
     def insert_searchable_texts(self, data_list: dict):
         manager = Management()
@@ -56,28 +68,16 @@ class Modelator:
         manager.import_record_to_index(INDEX, new_index_data)
         return None
 
-    # TODO add to Ktolin
-
     def calculate_words(self):
-        docs = self.manager.get_words_occurrences(INDEX)
         print(f'Counting words occurrences in documents started {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!')
-        counted_docs = 0
-        words_lists = []
-        while counted_docs < (len(docs) - COUNTING_AMOUNT if len(docs) > COUNTING_AMOUNT else len(docs)):
-            end = (counted_docs + COUNTING_AMOUNT) if COUNTING_AMOUNT < len(docs) else len(docs)
-            words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:end]))
-            counted_docs = end
-            print(f'Counted words in {counted_docs} of {len(docs)} documents')
-        print(f'{len(docs) - counted_docs} remaining')
-        words_lists.append(self.counter.count_all_words_in_docs(docs[counted_docs:len(docs)]))
-        return self.counter.count_all_words(words_lists)
+        occurrences = self.counter.count_words(self.manager.get_words_occurrences(INDEX))
+        print(f'Counting words occurrences in documents is done {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!')
+        return occurrences
 
     def create_model(self):
-        occurrences = self.calculate_words()
-        print(f'Counting words occurrences in documents is done {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!')
+        words_occurrences = self.calculate_words()
         x = 0
-        for field in occurrences:
-            # self.helper.create_alias(self.manager, constants.WORDS_PAIRS, INDEX_IMPORT) if (x and x < 2) else None
+        for field in words_occurrences:
             before = field['word']
             found = 0
             dependant_words = self.manager.get_phrase_count(INDEX, before)
@@ -93,5 +93,5 @@ class Modelator:
                     if found == int(field['count']):
                         break
             x += 1
-            print(f'Word {before} ({x} of {len(occurrences)}) is inserted to database')
+            print(f'Word {before} ({x} of {len(words_occurrences)}) is inserted to database')
         return INDEX_IMPORT
